@@ -1,0 +1,325 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// USERS & AUTH
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+model User {
+  id            String   @id @default(cuid())
+  name          String
+  email         String   @unique
+  password      String?
+  role          String   @default("STUDENT") // STUDENT, ADMIN, SUPER_ADMIN
+  avatar        String?
+  bio           String?
+  phone         String?
+  skills        String?  // JSON array of skills
+  socialLinks   String?  // JSON: { github, linkedin, twitter, portfolio }
+  canPost       Boolean  @default(false) // Admin grants posting rights
+  status        String   @default("ACTIVE") // ACTIVE, INACTIVE, SUSPENDED
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  projects     Project[]
+  enrollments  Enrollment[]
+  receipts     Receipt[]
+  blogPosts    BlogPost[]
+  notifications Notification[]
+
+  @@map("users")
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// PROJECTS (Student/company showcase)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+model Project {
+  id            String   @id @default(cuid())
+  title         String
+  description   String
+  shortDesc     String?  @default("")
+  category      String   @default("WEB") // AI, WEB, MOBILE, DATA, MARKETING, OTHER
+  techStack     String?  // JSON array of technologies
+  price         Float?
+  status        String   @default("DRAFT") // DRAFT, IN_PROGRESS, COMPLETED, PUBLISHED
+  screenshots   String?  // JSON array of image URLs
+  liveUrl       String?
+  repoUrl       String?
+  linkedinPost  String?  // LinkedIn post URL
+  peopleInvolved String? // JSON array: [{ name, role, avatar }]
+  studentId     String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  student  User       @relation(fields: [studentId], references: [id])
+  receipts  Receipt[]
+
+  @@map("projects")
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// SERVICES (Company offerings)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+model Service {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  shortDesc   String?
+  category    String   // AI_AUTOMATION, SOFTWARE_DEV, DIGITAL_MARKETING, TRAINING, PROJECT_SUPPORT, CYBER_SECURITY, HARDWARE_MAINTENANCE
+  icon        String?  // Lucide icon name
+  price       Float?
+  features    String?  // JSON array of features
+  order       Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("services")
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// PARTNERS
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+model Partner {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  website     String?
+  logo        String?
+  country     String?
+  isActive    Boolean  @default(true)
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("partners")
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// PRODUCTS (E-commerce - Electronics)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+model Product {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  shortDesc   String?
+  price       Float
+  comparePrice Float?  // Original price before discount
+  category    String   @default("ELECTRONICS") // ELECTRONICS, ACCESSORIES, PERIPHERALS, NETWORKING
+  images      String?  // JSON array of image URLs
+  stock       Int      @default(0)
+  features    String?  // JSON array of features/specs
+  isActive    Boolean  @default(true)
+  isFeatured  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("products")
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ACHIEVEMENTS
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+model Achievement {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  icon        String?
+  date        String?  // e.g. "2025", "Q1 2026"
+  image       String?
+  isActive    Boolean  @default(true)
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("achievements")
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// COURSES (Training programs - catalog only, no online classes yet)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+model Course {
+  id           String   @id @default(cuid())
+  title        String
+  description  String
+  shortDesc    String?
+  category     String   // DIGITAL_MARKETING, SEO, PROGRAMMING, AI, WEB_DEV, OTHER
+  level        String   @default("BEGINNER") // BEGINNER, INTERMEDIATE, ADVANCED
+  duration     String?  // e.g. "4 weeks", "8 sessions"
+  schedule     String?  // e.g. "Mon & Wed, 6PM"
+  platform     String?  @default("Zoom")
+  price        Float?
+  instructor   String?
+  coverImage   String?
+  maxStudents  Int?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  enrollments  Enrollment[]
+
+  @@map("courses")
+}
+
+model Enrollment {
+  id         String   @id @default(cuid())
+  userId     String
+  courseId   String
+  status     String   @default("ACTIVE") // ACTIVE, COMPLETED, CANCELLED
+  enrolledAt DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id])
+  course Course @relation(fields: [courseId], references: [id])
+
+  @@unique([userId, courseId])
+  @@map("enrollments")
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// BLOG POSTS
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+model BlogPost {
+  id          String   @id @default(cuid())
+  title       String
+  slug        String   @unique
+  content     String   // MDX content
+  excerpt     String?
+  coverImage  String?
+  category    String?  // TECHNOLOGY, MARKETING, AI, TUTORIAL, COMPANY, SEO
+  tags        String?  // JSON array
+  authorId    String?
+  status      String   @default("DRAFT") // DRAFT, PUBLISHED
+  publishedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  author User? @relation(fields: [authorId], references: [id])
+
+  @@map("blog_posts")
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// RECEIPTS
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+model Receipt {
+  id         String   @id @default(cuid())
+  receiptNo  String   @unique
+  projectId  String?
+  studentId  String
+  items      String   // JSON: [{ description, quantity, unitPrice, total }]
+  subtotal   Float
+  tax        Float    @default(0)
+  total      Float
+  paymentMethod String @default("CASH") // CASH, MOBILE_MONEY, BANK_TRANSFER
+  status     String   @default("PAID") // PAID, PENDING, CANCELLED
+  notes      String?
+  createdAt  DateTime @default(now())
+
+  project Project? @relation(fields: [projectId], references: [id])
+  student User      @relation(fields: [studentId], references: [id])
+
+  @@map("receipts")
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// TESTIMONIALS
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+model Testimonial {
+  id        String   @id @default(cuid())
+  content   String
+  author    String
+  company   String?
+  role      String?
+  rating    Int      @default(5)
+  avatar    String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@map("testimonials")
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// CONTACT SUBMISSIONS
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+model ContactSubmission {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  phone     String?
+  subject   String?
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@map("contact_submissions")
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// NOTIFICATIONS
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String   // PROJECT_STATUS, ENROLLMENT, GENERAL
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("notifications")
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// SITE SETTINGS (Key-value store)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+model SiteSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String?
+  updatedAt DateTime @updatedAt
+
+  @@map("site_settings")
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// PAGE VIEWS (Analytics tracking)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+model PageView {
+  id        String   @id @default(cuid())
+  path      String
+  title     String?
+  referrer  String?
+  userAgent String?
+  country   String?
+  device    String?
+  browser   String?
+  os        String?
+  sessionId String?
+  createdAt DateTime @default(now())
+
+  @@index([path])
+  @@index([createdAt])
+  @@index([sessionId])
+  @@map("page_views")
+}
